@@ -1,0 +1,45 @@
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #eef3ff;
+            text-align: center;
+            margin: 0;
+            padding: 30px;
+        }
+
+        h1 {
+            color: #25345c;
+        }
+
+        input {
+            width: 260px;
+            padding: 10px;
+            font-size: 14px;
+            border: 1px solid gray;
+            border-radius: 5px;
+        }
+
+        button {
+            padding: 11px 18px;
+            font-size: 14px;
+            background-color: #2b6ff3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #174fc2;
+        }
+
+        #nome {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        #sprite {
+            margin-top: 25px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
