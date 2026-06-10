@@ -1,3 +1,11 @@
+let traduzioni = {};
+
+fetch("tipi_ita.json")
+  .then((res) => res.json())
+  .then((data) => {
+    traduzioni = data;
+  });
+
 let pk = [];
 
 fetch("evolines.json")
@@ -44,7 +52,7 @@ async function cerca(event) {
 
   let altezza = data.height / 10;
   let peso = data.weight / 10;
-  let tipi = data.types.map((t) => t.type.name).join(", ");
+  let tipi = data.types.map((t) => traduzioni[t.type.name]).join(", ");
 
   document.getElementById("info").innerHTML = `
         <p>Altezza: ${altezza} m</p>
@@ -54,7 +62,8 @@ async function cerca(event) {
   document.getElementById("sprite").innerHTML = "<h2>Versione Normali</h2>";
   lineaTrovata.forEach((pokemon) => {
     document.getElementById("sprite").innerHTML += `
-            <div class="pokemon"><br>
+            <div class="pokemon">
+                <p>#${String(pokemon.id).padStart(3, "0")}</p>
                 <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemon.id}.png" alt="${pokemon.nome}">
                 <p>${pokemon.nome}</p>
             </div>
@@ -65,6 +74,7 @@ async function cerca(event) {
   lineaTrovata.forEach((pokemon) => {
     document.getElementById("shiny").innerHTML += `
             <div class="pokemon">
+                <p>#${String(pokemon.id).padStart(3, "0")}✨</p>
                 <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${pokemon.id}.png" alt="${pokemon.nome} shiny">
                 <p>${pokemon.nome} ✨</p>
             </div>
