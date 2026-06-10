@@ -90,7 +90,7 @@ function Shiny(linea) {
 
 async function cerca(event) {
   event.preventDefault();
-  pulisci();
+  Pulisci();
 
   const ricerca = document.getElementById("pokemon").value.toLowerCase();
 
@@ -101,7 +101,7 @@ async function cerca(event) {
   }
 
   const pokemonCercato = trovaNellaLinea(lineaTrovata, ricerca);
-  const data = await fetchDettagliPokemon(pokemonCercato.id);
+  const data = await DettagliPokemon(pokemonCercato.id);
 
   Info(data);
   Sprite(lineaTrovata);
