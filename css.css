@@ -36,10 +36,25 @@ button:hover {
   font-weight: bold;
 }
 
-#sprite {
-  margin-top: 25px;
+#sprite,
+#shiny {
   display: flex;
   justify-content: center;
   gap: 20px;
   flex-wrap: wrap;
+}
+
+#info {
+  margin-top: 15px;
+  font-size: 16px;
+  color: #25345c;
+}
+
+#info p {
+  margin: 5px 0;
+}
+
+#sprite h2,
+#shiny h2 {
+  width: 100%;
 }
