@@ -63,8 +63,14 @@
 
         <div>
 
-            <input type="text" id="pokemon" placeholder="Inserisci il nome di un pokemon 1-151">
-            <button onclick="cerca()">Cerca</button>
+            <form id="form">
+                <input
+                    type="text"
+                    id="pokemon"
+                    placeholder="Inserisci nome o ID di un pokemon 1-151"
+                >
+                <button type="submit">Cerca</button>
+            </form>
 
         </div>
 
@@ -386,45 +392,40 @@
             ]
         ];
 
-        function cerca() {
-            
-            let nomeCercato = document.getElementById("pokemon").value.toLowerCase();
+        document.getElementById("form").addEventListener("submit", cerca);
 
-            document.getElementById("nome").innerHTML = "";
-            document.getElementById("sprite").innerHTML = "";
+function cerca(event) {
 
-            let lineaTrovata = null;
+    event.preventDefault();
 
-            for (let i = 0; i < pk.length; i++) {
-                let linea = pk[i];
+    let ricerca = document.getElementById("pokemon").value.toLowerCase();
 
-                for (let j = 0; j < linea.length; j++) {
-                    let pokemon = linea[j];
+    document.getElementById("nome").innerHTML = "";
+    document.getElementById("sprite").innerHTML = "";
 
-                    if (pokemon.nome.toLowerCase() === nomeCercato) {
-                        lineaTrovata = linea;
-                    }
-                }
-            }
+    let lineaTrovata = pk.find(linea =>
+       linea.some(pokemon =>
+        pokemon.nome.toLowerCase() === ricerca ||
+        pokemon.id == ricerca
+        )
+    );
 
-            if (lineaTrovata === null) {
-                document.getElementById("nome").innerHTML =
-                    "Pokemon non trovato. Prova con un altro nome.";
-                return;
-            }
+    if (!lineaTrovata) {
+        document.getElementById("nome").innerHTML =
+            "Pokemon non trovato. Prova con un altro nome.";
+        return;
+    }
 
-            for (let i = 0; i < lineaTrovata.length; i++) {
-                let pokemon = lineaTrovata[i];
+    lineaTrovata.forEach(pokemon => {
+        document.getElementById("sprite").innerHTML += `
+            <div class="pokemon">
+                <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemon.id}.png" alt="${pokemon.nome}">
+                <p>${pokemon.nome}</p>
+            </div>
+        `;
+    });
 
-                document.getElementById("sprite").innerHTML += `
-                    <div class="pokemon">
-                        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemon.id}.png" alt="${pokemon.nome}">
-                        <p>${pokemon.nome}</p>
-                    </div>
-                `;
-            }
-        
-        }
+}
     </script>
 
 
