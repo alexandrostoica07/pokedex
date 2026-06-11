@@ -14,7 +14,8 @@ function trovaPokemon(ricerca) {
   return pk.find((linea) =>
     linea.some(
       (pokemon) =>
-        pokemon.nome.toLowerCase() === ricerca || pokemon.id == ricerca,
+        pokemon.nome.toLowerCase() === ricerca ||
+        String(pokemon.id) === ricerca,
     ),
   );
 }
@@ -22,27 +23,26 @@ function trovaPokemon(ricerca) {
 function trovaNellaLinea(linea, ricerca) {
   return linea.find(
     (pokemon) =>
-      pokemon.nome.toLowerCase() === ricerca || pokemon.id == ricerca,
+      pokemon.nome.toLowerCase() === ricerca || String(pokemon.id) === ricerca,
   );
 }
 
-async function DettagliPokemon(id) {
-  const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
-  return res.json();
+async function dettagliPokemon(id) {
+  return (await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`)).json();
 }
 
-function Errore(messaggio) {
+function mostraErrore(messaggio) {
   document.getElementById("nome").innerHTML = messaggio;
 }
 
-function Pulisci() {
+function pulisci() {
   document.getElementById("nome").innerHTML = "";
   document.getElementById("sprite").innerHTML = "";
   document.getElementById("info").innerHTML = "";
   document.getElementById("shiny").innerHTML = "";
 }
 
-function Info(data) {
+function info(data) {
   const altezza = data.height / 10;
   const peso = data.weight / 10;
   const tipi = data.types.map((t) => traduzioni[t.type.name]).join(", ");
@@ -54,7 +54,7 @@ function Info(data) {
   `;
 }
 
-function Sprite(linea) {
+function sprite(linea) {
   let html = "<h2>Versione Normale</h2>";
   for (const pokemon of linea) {
     html += `
@@ -71,7 +71,7 @@ function Sprite(linea) {
   document.getElementById("sprite").innerHTML = html;
 }
 
-function Shiny(linea) {
+function shiny(linea) {
   let html = "<h2>Versione Shiny ✨</h2>";
   for (const pokemon of linea) {
     html += `
@@ -90,22 +90,22 @@ function Shiny(linea) {
 
 async function cerca(event) {
   event.preventDefault();
-  Pulisci();
+  pulisci();
 
   const ricerca = document.getElementById("pokemon").value.toLowerCase();
 
   const lineaTrovata = trovaPokemon(ricerca);
   if (!lineaTrovata) {
-    Errore("Pokémon non trovato. Prova con un altro nome.");
+    mostraErrore("Pokémon non trovato. Prova con un altro nome.");
     return;
   }
 
   const pokemonCercato = trovaNellaLinea(lineaTrovata, ricerca);
-  const data = await DettagliPokemon(pokemonCercato.id);
+  const data = await dettagliPokemon(pokemonCercato.id);
 
-  Info(data);
-  Sprite(lineaTrovata);
-  Shiny(lineaTrovata);
+  info(data);
+  sprite(lineaTrovata);
+  shiny(lineaTrovata);
 }
 
 caricaDati();
