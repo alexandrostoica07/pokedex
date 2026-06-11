@@ -58,3 +58,9 @@ button:hover {
 #shiny h2 {
   width: 100%;
 }
+
+.pokemon img {
+  width: 150px;
+  height: 150px;
+  image-rendering: pixelated;
+}

@@ -1,62 +1,61 @@
-let traduzioni = {};
+let translations = {};
 let pk = [];
 
-async function caricaDati() {
-  const [resTipi, resPokemon] = await Promise.all([
+async function loadData() {
+  const [resTypes, resPokemon] = await Promise.all([
     fetch("tipi_ita.json"),
     fetch("evolines.json"),
   ]);
-  traduzioni = await resTipi.json();
+  translations = await resTypes.json();
   pk = await resPokemon.json();
 }
 
-function trovaPokemon(ricerca) {
-  return pk.find((linea) =>
-    linea.some(
+function findPokemon(query) {
+  return pk.find((line) =>
+    line.some(
       (pokemon) =>
-        pokemon.nome.toLowerCase() === ricerca ||
-        String(pokemon.id) === ricerca,
+        pokemon.nome.toLowerCase() === query || String(pokemon.id) === query,
     ),
   );
 }
 
-function trovaNellaLinea(linea, ricerca) {
-  return linea.find(
+function findInLine(line, query) {
+  return line.find(
     (pokemon) =>
-      pokemon.nome.toLowerCase() === ricerca || String(pokemon.id) === ricerca,
+      pokemon.nome.toLowerCase() === query || String(pokemon.id) === query,
   );
 }
 
-async function dettagliPokemon(id) {
+async function fetchPokemonDetails(id) {
   return (await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`)).json();
 }
 
-function mostraErrore(messaggio) {
-  document.getElementById("nome").innerHTML = messaggio;
+function showError(message) {
+  document.getElementById("nome").innerHTML = message;
 }
 
-function pulisci() {
+function clearUI() {
   document.getElementById("nome").innerHTML = "";
   document.getElementById("sprite").innerHTML = "";
   document.getElementById("info").innerHTML = "";
   document.getElementById("shiny").innerHTML = "";
 }
 
-function info(data) {
-  const altezza = data.height / 10;
-  const peso = data.weight / 10;
-  const tipi = data.types.map((t) => traduzioni[t.type.name]).join(", ");
+function showInfo(data) {
+  const height = data.height / 10;
+  const weight = data.weight / 10;
+  const types = data.types.map((t) => translations[t.type.name]).join(", ");
 
   document.getElementById("info").innerHTML = `
-    <p>Altezza: ${altezza} m</p>
-    <p>Peso: ${peso} kg</p>
-    <p>Tipo: ${tipi}</p>
+    <p>Height: ${height} m</p>
+    <p>Weight: ${weight} kg</p>
+    <p>Type: ${types}</p>
   `;
 }
 
-function sprite(linea) {
-  let html = "<h2>Versione Normale</h2>";
-  for (const pokemon of linea) {
+function showSprite(line) {
+  let html = "<h2>Normal Version</h2>";
+  for (const pokemon of line) {
     html += `
       <div class="pokemon">
         <p>#${String(pokemon.id).padStart(3, "0")}</p>
@@ -71,9 +70,9 @@ function sprite(linea) {
   document.getElementById("sprite").innerHTML = html;
 }
 
-function shiny(linea) {
-  let html = "<h2>Versione Shiny ✨</h2>";
-  for (const pokemon of linea) {
+function showShiny(line) {
+  let html = "<h2>Shiny Version ✨</h2>";
+  for (const pokemon of line) {
     html += `
       <div class="pokemon">
         <p>#${String(pokemon.id).padStart(3, "0")} ✨</p>
@@ -88,25 +87,25 @@ function shiny(linea) {
   document.getElementById("shiny").innerHTML = html;
 }
 
-async function cerca(event) {
+async function search(event) {
   event.preventDefault();
-  pulisci();
+  clearUI();
 
-  const ricerca = document.getElementById("pokemon").value.toLowerCase();
+  const query = document.getElementById("pokemon").value.toLowerCase();
 
-  const lineaTrovata = trovaPokemon(ricerca);
-  if (!lineaTrovata) {
-    mostraErrore("Pokémon non trovato. Prova con un altro nome.");
+  const foundLine = findPokemon(query);
+  if (!foundLine) {
+    showError("Pokémon not found. Try another name.");
     return;
   }
 
-  const pokemonCercato = trovaNellaLinea(lineaTrovata, ricerca);
-  const data = await dettagliPokemon(pokemonCercato.id);
+  const foundPokemon = findInLine(foundLine, query);
+  const data = await fetchPokemonDetails(foundPokemon.id);
 
-  info(data);
-  sprite(lineaTrovata);
-  shiny(lineaTrovata);
+  showInfo(data);
+  showSprite(foundLine);
+  showShiny(foundLine);
 }
 
-caricaDati();
-document.getElementById("form").addEventListener("submit", cerca);
+loadData();
+document.getElementById("form").addEventListener("submit", search);
