@@ -25,6 +25,23 @@
 
       <div id="nome"></div>
       <div id="info"></div>
+      <div id="tabs">
+        <input type="radio" name="tab" id="tab-stats" checked />
+        <input type="radio" name="tab" id="tab-abilities" />
+        <input type="radio" name="tab" id="tab-items" />
+
+        <div id="tab-bar">
+          <label for="tab-stats">Base Stats</label>
+          <label for="tab-abilities">Abilities</label>
+          <label for="tab-items">Held Items</label>
+        </div>
+
+        <div id="tab-content">
+          <div class="panel" id="panel-stats">...</div>
+          <div class="panel" id="panel-abilities">...</div>
+          <div class="panel" id="panel-items">...</div>
+        </div>
+      </div>
       <div id="sprite"></div>
       <div id="shiny"></div>
     </div>
