@@ -2,6 +2,9 @@ let typeTranslations = {};
 let pk = [];
 const abilityCache = {};
 
+const LEGGENDARI = new Set([144, 145, 146, 150]);
+const MISTERIOSI = new Set([151]);
+
 async function loadData() {
   const [resTypes, resPokemon] = await Promise.all([
     fetch("tipi_ita.json"),
@@ -56,7 +59,7 @@ function showInfo(data) {
   `;
 }
 
-function showStats(data) {
+function showStats(data, isLegendary = false, isMisterioso = false) {
   const statNames = {
     hp: "HP",
     attack: "Attacco",
@@ -71,6 +74,11 @@ function showStats(data) {
     const name = statNames[stat.stat.name] ?? stat.stat.name;
     const value = stat.base_stat;
     const percent = Math.min((value / 255) * 100, 100);
+    const star = isLegendary
+      ? `<span class="stat-star">⭐</span>`
+      : isMisterioso
+        ? `<span class="stat-star">🌟</span>`
+        : "";
     html += `
       <div class="stat-row">
         <span class="stat-name">${name}</span>
@@ -78,6 +86,7 @@ function showStats(data) {
         <div class="stat-bar">
           <div class="stat-fill" style="width: ${percent}%"></div>
         </div>
+        ${star}
       </div>
     `;
   }
@@ -181,8 +190,10 @@ async function search(event) {
   const foundPokemon = findInLine(foundLine, query);
   const data = await fetchPokemonDetails(foundPokemon.id);
 
+  const isLegendary = LEGGENDARI.has(foundPokemon.id);
+  const isMisterioso = MISTERIOSI.has(foundPokemon.id);
   showInfo(data);
-  showStats(data);
+  showStats(data, isLegendary, isMisterioso);
   await showAbilities(data);
   showHeldItems(data);
   document.getElementById("tabs").style.display = "block";
