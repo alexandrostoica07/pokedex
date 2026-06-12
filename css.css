@@ -198,3 +198,22 @@ button:hover {
 .stat-star-blue {
   filter: hue-rotate(200deg);
 }
+
+#cry {
+  margin: 6px 0 10px;
+}
+
+#cry-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: background 0.15s;
+  color: #25345c;
+}
+
+#cry-btn:hover {
+  background: #e0e7ff;
+}

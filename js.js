@@ -40,6 +40,7 @@ function showError(message) {
 
 function clearUI() {
   document.getElementById("nome").innerHTML = "";
+  document.getElementById("cry").innerHTML = "";
   document.getElementById("sprite").innerHTML = "";
   document.getElementById("info").innerHTML = "";
   document.getElementById("shiny").innerHTML = "";
@@ -51,6 +52,20 @@ function showInfo(data) {
   const height = data.height / 10;
   const weight = data.weight / 10;
   const types = data.types.map((t) => typeTranslations[t.type.name]).join(", ");
+  const cryUrl =
+    data.cries?.latest ??
+    `https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/${data.id}.ogg`;
+
+  document.getElementById("nome").innerHTML = `
+    <span>${data.name.charAt(0).toUpperCase() + data.name.slice(1)}</span>
+  `;
+
+  document.getElementById("cry").innerHTML = `
+    <button id="cry-btn" title="Ascolta il verso" onclick="
+      var a = new Audio('${cryUrl}');
+      a.play();
+    ">🔊 Ascolta il verso</button>
+  `;
 
   document.getElementById("info").innerHTML = `
     <p>Altezza: ${height} m</p>
