@@ -2,8 +2,8 @@ let typeTranslations = {};
 let pk = [];
 const abilityCache = {};
 
-const LEGGENDARI = new Set([144, 145, 146, 150]);
-const MISTERIOSI = new Set([151]);
+const leggendary = new Set([144, 145, 146, 150]);
+const mistery = new Set([151]);
 
 async function loadData() {
   const [resTypes, resPokemon] = await Promise.all([
@@ -141,16 +141,34 @@ async function showAbilities(data) {
   document.getElementById("panel-abilities").innerHTML = html;
 }
 
-function showHeldItems(data) {
+const itemCache = {};
+
+async function getItemName(itemName, itemUrl) {
+  if (itemCache[itemName]) return itemCache[itemName];
+  const res = await fetch(itemUrl);
+  const data = await res.json();
+  const itName = data.names.find((n) => n.language.name === "it");
+  const name = itName?.name ?? data.name;
+  itemCache[itemName] = name;
+  return name;
+}
+
+async function showHeldItems(data) {
   if (data.held_items.length === 0) {
     document.getElementById("panel-items").innerHTML =
       "<p>Nessun oggetto tenuto.</p>";
     return;
   }
 
+  const resolved = await Promise.all(
+    data.held_items.map(async (i) => ({
+      name: await getItemName(i.item.name, i.item.url),
+    })),
+  );
+
   let html = "<ul class='tab-list'>";
-  for (const item of data.held_items) {
-    html += `<li>${item.item.name}</li>`;
+  for (const i of resolved) {
+    html += `<li>${i.name}</li>`;
   }
   html += "</ul>";
   document.getElementById("panel-items").innerHTML = html;
@@ -205,12 +223,12 @@ async function search(event) {
   const foundPokemon = findInLine(foundLine, query);
   const data = await fetchPokemonDetails(foundPokemon.id);
 
-  const isLegendary = LEGGENDARI.has(foundPokemon.id);
-  const isMisterioso = MISTERIOSI.has(foundPokemon.id);
+  const isLegendary = leggendary.has(foundPokemon.id);
+  const isMisterioso = mistery.has(foundPokemon.id);
   showInfo(data);
   showStats(data, isLegendary, isMisterioso);
   await showAbilities(data);
-  showHeldItems(data);
+  await showHeldItems(data);
   document.getElementById("tabs").style.display = "block";
   showSprite(foundLine);
   showShiny(foundLine);
