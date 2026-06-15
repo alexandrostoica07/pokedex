@@ -1,3 +1,7 @@
+.hidden {
+  display: none !important;
+}
+
 body {
   font-family: Arial, sans-serif;
   background-color: #eef3ff;
@@ -34,10 +38,15 @@ button:hover {
 #nome {
   margin-top: 20px;
   font-weight: bold;
+  font-size: 28px;
 }
 
 #sprite,
 #shiny {
+  width: 100%;
+}
+
+.sprite-container {
   display: flex;
   justify-content: center;
   gap: 20px;
@@ -211,7 +220,7 @@ button:hover {
   padding: 2px 6px;
   border-radius: 6px;
   transition: background 0.15s;
-  color: #25345c;
+  color: #000;
 }
 
 #cry-btn:hover {
