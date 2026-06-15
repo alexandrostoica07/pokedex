@@ -6,19 +6,59 @@ const itemCache = {};
 const LEGGENDARI = new Set([144, 145, 146, 150]);
 const MISTERIOSI = new Set([151]);
 
-// ── Helpers ──────────────────────────────────────────────
+// ── Binding engine ────────────────────────────────────────
+//
+// bind(root, data) — popola tutti gli elementi dentro `root`
+// che hanno attributi di binding:
+//
+//   data-field="key"          → el.textContent = data[key]
+//   data-style="prop:key"     → el.style[prop] = data[key]
+//   data-attr="attr:key"      → el.setAttribute(attr, data[key])
+//   data-attr2="attr:key"     → idem (secondo attributo sullo stesso elemento)
+//   data-show-if="key"        → rimuove .hidden se data[key] è truthy
+
+function bind(root, data) {
+  root.querySelectorAll("[data-field]").forEach((el) => {
+    el.textContent = data[el.dataset.field] ?? "";
+  });
+  root.querySelectorAll("[data-style]").forEach((el) => {
+    const [prop, key] = el.dataset.style.split(":");
+    el.style[prop] = data[key] ?? "";
+  });
+  ["attr", "attr2"].forEach((attrKey) => {
+    root.querySelectorAll(`[data-${attrKey}]`).forEach((el) => {
+      const [attr, key] = el.dataset[attrKey].split(":");
+      el.setAttribute(attr, data[key] ?? "");
+    });
+  });
+  root.querySelectorAll("[data-show-if]").forEach((el) => {
+    const key = el.dataset.showIf;
+    el.classList.toggle("hidden", !data[key]);
+  });
+}
+
+// ── Template engine ───────────────────────────────────────
+//
+// renderList(containerId, templateId, items) — per ogni item
+// clona il template, chiama bind(), e appende al container.
+
+function renderList(containerId, templateId, items) {
+  const container = document.getElementById(containerId);
+  const tpl = document.getElementById(templateId);
+  for (const item of items) {
+    const frag = tpl.content.cloneNode(true);
+    bind(frag, item);
+    container.appendChild(frag);
+  }
+}
+
+// ── Visibility helpers ────────────────────────────────────
 
 function show(id) {
   document.getElementById(id).classList.remove("hidden");
 }
 function hide(id) {
   document.getElementById(id).classList.add("hidden");
-}
-function setText(id, text) {
-  document.getElementById(id).textContent = text;
-}
-function cloneTemplate(id) {
-  return document.getElementById(id).content.cloneNode(true);
 }
 
 // ── Data loading ──────────────────────────────────────────
@@ -70,26 +110,25 @@ async function getItemName(name, url) {
 
 function clearUI() {
   ["nome", "cry", "info", "tabs", "sprite", "shiny"].forEach(hide);
-  document.getElementById("panel-stats").innerHTML = "";
-  document.getElementById("abilities-list").innerHTML = "";
-  document.getElementById("items-list").innerHTML = "";
-  document.getElementById("sprite-list").innerHTML = "";
-  document.getElementById("shiny-list").innerHTML = "";
-  hide("abilities-empty");
-  hide("items-empty");
+  [
+    "panel-stats",
+    "abilities-list",
+    "items-list",
+    "sprite-list",
+    "shiny-list",
+  ].forEach((id) => {
+    document.getElementById(id).innerHTML = "";
+  });
+  ["abilities-empty", "items-empty"].forEach(hide);
   document.getElementById("tab-stats").checked = true;
-}
-
-function showError(message) {
-  const el = document.getElementById("nome");
-  el.textContent = message;
-  show("nome");
 }
 
 // ── UI: info ──────────────────────────────────────────────
 
 function showInfo(data) {
-  setText("nome", data.name.charAt(0).toUpperCase() + data.name.slice(1));
+  bind(document.getElementById("nome"), {
+    nome: data.name.charAt(0).toUpperCase() + data.name.slice(1),
+  });
   show("nome");
 
   const cryUrl =
@@ -98,12 +137,11 @@ function showInfo(data) {
   document.getElementById("cry-btn").onclick = () => new Audio(cryUrl).play();
   show("cry");
 
-  setText("info-altezza", `${data.height / 10} m`);
-  setText("info-peso", `${data.weight / 10} kg`);
-  setText(
-    "info-tipo",
-    data.types.map((t) => typeTranslations[t.type.name]).join(", "),
-  );
+  bind(document.getElementById("info"), {
+    altezza: `${data.height / 10} m`,
+    peso: `${data.weight / 10} kg`,
+    tipo: data.types.map((t) => typeTranslations[t.type.name]).join(", "),
+  });
   show("info");
 }
 
@@ -120,19 +158,17 @@ function showStats(data, isLegendary, isMisterioso) {
   };
 
   const star = isLegendary ? "⭐" : isMisterioso ? "🌟" : "";
-  const container = document.getElementById("panel-stats");
 
-  for (const stat of data.stats) {
-    const frag = cloneTemplate("tpl-stat-row");
-    const row = frag.querySelector(".stat-row");
-    row.querySelector(".stat-name").textContent =
-      statNames[stat.stat.name] ?? stat.stat.name;
-    row.querySelector(".stat-value").textContent = stat.base_stat;
-    row.querySelector(".stat-fill").style.width =
-      `${Math.min((stat.base_stat / 255) * 100, 100)}%`;
-    row.querySelector(".stat-star").textContent = star;
-    container.appendChild(frag);
-  }
+  renderList(
+    "panel-stats",
+    "tpl-stat-row",
+    data.stats.map((s) => ({
+      name: statNames[s.stat.name] ?? s.stat.name,
+      value: String(s.base_stat),
+      percent: `${Math.min((s.base_stat / 255) * 100, 100)}%`,
+      star,
+    })),
+  );
 }
 
 // ── UI: abilities ─────────────────────────────────────────
@@ -143,21 +179,13 @@ async function showAbilities(data) {
     return;
   }
 
-  const list = document.getElementById("abilities-list");
-  const resolved = await Promise.all(
+  const items = await Promise.all(
     data.abilities.map(async (a) => ({
       name: await getAbilityName(a.ability.name, a.ability.url),
       hidden: a.is_hidden,
     })),
   );
-
-  for (const a of resolved) {
-    const frag = cloneTemplate("tpl-ability");
-    const li = frag.querySelector("li");
-    li.querySelector(".ability-name").textContent = a.name;
-    if (a.hidden) li.querySelector(".hidden-tag").classList.remove("hidden");
-    list.appendChild(frag);
-  }
+  renderList("abilities-list", "tpl-ability", items);
 }
 
 // ── UI: held items ────────────────────────────────────────
@@ -168,45 +196,41 @@ async function showHeldItems(data) {
     return;
   }
 
-  const list = document.getElementById("items-list");
-  const resolved = await Promise.all(
+  const items = await Promise.all(
     data.held_items.map(async (i) => ({
       name: await getItemName(i.item.name, i.item.url),
     })),
   );
-
-  for (const i of resolved) {
-    const frag = cloneTemplate("tpl-item");
-    frag.querySelector(".item-name").textContent = i.name;
-    list.appendChild(frag);
-  }
+  renderList("items-list", "tpl-item", items);
 }
 
 // ── UI: sprites ───────────────────────────────────────────
 
 function showSprites(line) {
-  const normalList = document.getElementById("sprite-list");
-  const shinyList = document.getElementById("shiny-list");
+  const baseUrl =
+    "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon";
 
-  for (const pokemon of line) {
-    const idStr = `#${String(pokemon.id).padStart(3, "0")}`;
+  renderList(
+    "sprite-list",
+    "tpl-pokemon-card",
+    line.map((p) => ({
+      id: `#${String(p.id).padStart(3, "0")}`,
+      src: `${baseUrl}/${p.id}.png`,
+      alt: p.nome,
+      name: p.nome,
+    })),
+  );
 
-    const normal = cloneTemplate("tpl-pokemon-card");
-    normal.querySelector(".pokemon-id").textContent = idStr;
-    normal.querySelector(".pokemon-img").src =
-      `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemon.id}.png`;
-    normal.querySelector(".pokemon-img").alt = pokemon.nome;
-    normal.querySelector(".pokemon-name").textContent = pokemon.nome;
-    normalList.appendChild(normal);
-
-    const shiny = cloneTemplate("tpl-pokemon-card");
-    shiny.querySelector(".pokemon-id").textContent = `${idStr} ✨`;
-    shiny.querySelector(".pokemon-img").src =
-      `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${pokemon.id}.png`;
-    shiny.querySelector(".pokemon-img").alt = `${pokemon.nome} shiny`;
-    shiny.querySelector(".pokemon-name").textContent = `${pokemon.nome} ✨`;
-    shinyList.appendChild(shiny);
-  }
+  renderList(
+    "shiny-list",
+    "tpl-pokemon-card",
+    line.map((p) => ({
+      id: `#${String(p.id).padStart(3, "0")} ✨`,
+      src: `${baseUrl}/shiny/${p.id}.png`,
+      alt: `${p.nome} shiny`,
+      name: `${p.nome} ✨`,
+    })),
+  );
 
   show("sprite");
   show("shiny");
@@ -222,18 +246,22 @@ async function search(event) {
   const foundLine = findPokemon(query);
 
   if (!foundLine) {
-    showError("Pokémon non trovato. Prova con un altro nome o id.");
+    bind(document.getElementById("nome"), {
+      nome: "Pokémon non trovato. Prova con un altro nome o id.",
+    });
+    show("nome");
     return;
   }
 
   const foundPokemon = findInLine(foundLine, query);
   const data = await fetchPokemonDetails(foundPokemon.id);
 
-  const isLegendary = LEGGENDARI.has(foundPokemon.id);
-  const isMisterioso = MISTERIOSI.has(foundPokemon.id);
-
   showInfo(data);
-  showStats(data, isLegendary, isMisterioso);
+  showStats(
+    data,
+    LEGGENDARI.has(foundPokemon.id),
+    MISTERIOSI.has(foundPokemon.id),
+  );
   await showAbilities(data);
   await showHeldItems(data);
   show("tabs");

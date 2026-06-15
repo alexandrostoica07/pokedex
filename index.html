@@ -24,16 +24,18 @@
       </div>
 
       <!-- Info principale -->
-      <div id="nome" class="hidden"></div>
+      <div id="nome" class="hidden" data-field="nome"></div>
+
       <div id="cry" class="hidden">
         <button id="cry-btn" title="Ascolta il verso">
           🔊 Ascolta il verso
         </button>
       </div>
+
       <div id="info" class="hidden">
-        <p>Altezza: <span id="info-altezza"></span></p>
-        <p>Peso: <span id="info-peso"></span></p>
-        <p>Tipo: <span id="info-tipo"></span></p>
+        <p>Altezza: <span data-field="altezza"></span></p>
+        <p>Peso: <span data-field="peso"></span></p>
+        <p>Tipo: <span data-field="tipo"></span></p>
       </div>
 
       <!-- Tab -->
@@ -49,16 +51,13 @@
         </div>
 
         <div id="tab-content">
-          <!-- Stats: righe generate da template -->
           <div class="panel" id="panel-stats"></div>
 
-          <!-- Abilities -->
           <div class="panel" id="panel-abilities">
             <ul class="tab-list" id="abilities-list"></ul>
             <p id="abilities-empty" class="hidden">Nessuna abilità.</p>
           </div>
 
-          <!-- Held Items -->
           <div class="panel" id="panel-items">
             <ul class="tab-list" id="items-list"></ul>
             <p id="items-empty" class="hidden">Nessun oggetto tenuto.</p>
@@ -82,34 +81,34 @@
     <!-- Template: riga statistica -->
     <template id="tpl-stat-row">
       <div class="stat-row">
-        <span class="stat-name"></span>
-        <span class="stat-value"></span>
+        <span class="stat-name" data-field="name"></span>
+        <span class="stat-value" data-field="value"></span>
         <div class="stat-bar">
-          <div class="stat-fill"></div>
+          <div class="stat-fill" data-style="width:percent"></div>
         </div>
-        <span class="stat-star"></span>
+        <span class="stat-star" data-field="star"></span>
       </div>
     </template>
 
     <!-- Template: abilità -->
     <template id="tpl-ability">
       <li>
-        <span class="ability-name"></span>
-        <span class="hidden-tag hidden">Nascosta</span>
+        <span data-field="name"></span>
+        <span class="hidden-tag" data-show-if="hidden">Nascosta</span>
       </li>
     </template>
 
     <!-- Template: oggetto tenuto -->
     <template id="tpl-item">
-      <li><span class="item-name"></span></li>
+      <li><span data-field="name"></span></li>
     </template>
 
     <!-- Template: card sprite -->
     <template id="tpl-pokemon-card">
       <div class="pokemon">
-        <p class="pokemon-id"></p>
-        <img class="pokemon-img" alt="" />
-        <p class="pokemon-name"></p>
+        <p data-field="id"></p>
+        <img data-attr="src:src" data-attr2="alt:alt" />
+        <p data-field="name"></p>
       </div>
     </template>
 
