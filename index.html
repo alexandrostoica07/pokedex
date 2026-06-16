@@ -5,18 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pokedex(151)</title>
     <link rel="stylesheet" href="css.css" />
+    <script src="https://unpkg.com/petite-vue@0.2.2/dist/petite-vue.iife.js" defer></script>
   </head>
   <body>
-    <div>
+    <div v-scope="Pokedex()" @vue:mounted="init">
+
       <div>
         <h1>Pokedex Prima Generazione</h1>
       </div>
 
       <div>
-        <form id="form">
+        <form @submit.prevent="search">
           <input
             type="text"
-            id="pokemon"
+            v-model="query"
             placeholder="Inserisci nome o ID di un pokemon 1-151"
           />
           <button type="submit">Cerca</button>
@@ -24,22 +26,21 @@
       </div>
 
       <!-- Info principale -->
-      <div id="nome" class="hidden" data-field="nome"></div>
+      <div v-if="pokemon" class="nome">{{ capitalize(pokemon.name) }}</div>
+      <div v-if="errore" class="nome">{{ errore }}</div>
 
-      <div id="cry" class="hidden">
-        <button id="cry-btn" title="Ascolta il verso">
-          🔊 Ascolta il verso
-        </button>
+      <div v-if="pokemon">
+        <button @click="playCry" title="Ascolta il verso">🔊 Ascolta il verso</button>
       </div>
 
-      <div id="info" class="hidden">
-        <p>Altezza: <span data-field="altezza"></span></p>
-        <p>Peso: <span data-field="peso"></span></p>
-        <p>Tipo: <span data-field="tipo"></span></p>
+      <div v-if="pokemon" id="info">
+        <p>Altezza: <span>{{ pokemon.height / 10 }} m</span></p>
+        <p>Peso: <span>{{ pokemon.weight / 10 }} kg</span></p>
+        <p>Tipo: <span>{{ tipi }}</span></p>
       </div>
 
       <!-- Tab -->
-      <div id="tabs" class="hidden">
+      <div v-if="pokemon" id="tabs">
         <input type="radio" name="tab" id="tab-stats" checked />
         <input type="radio" name="tab" id="tab-abilities" />
         <input type="radio" name="tab" id="tab-items" />
@@ -51,67 +52,66 @@
         </div>
 
         <div id="tab-content">
-          <div class="panel" id="panel-stats"></div>
 
+          <!-- Statistiche -->
+          <div class="panel" id="panel-stats">
+            <div v-for="s in pokemon.stats" class="stat-row">
+              <span class="stat-name">{{ STAT_NAMES[s.stat.name] ?? s.stat.name }}</span>
+              <span class="stat-value">{{ s.base_stat }}</span>
+              <div class="stat-bar">
+                <div class="stat-fill" :style="{ width: statPercent(s.base_stat) }"></div>
+              </div>
+              <span class="stat-star">{{ star }}</span>
+            </div>
+          </div>
+
+          <!-- Abilità -->
           <div class="panel" id="panel-abilities">
-            <ul class="tab-list" id="abilities-list"></ul>
-            <p id="abilities-empty" class="hidden">Nessuna abilità.</p>
+            <ul v-if="abilities.length" class="tab-list">
+              <li v-for="a in abilities">
+                <span>{{ a.name }}</span>
+                <span v-if="a.hidden" class="hidden-tag">Nascosta</span>
+              </li>
+            </ul>
+            <p v-else>Nessuna abilità.</p>
           </div>
 
+          <!-- Oggetti tenuti -->
           <div class="panel" id="panel-items">
-            <ul class="tab-list" id="items-list"></ul>
-            <p id="items-empty" class="hidden">Nessun oggetto tenuto.</p>
+            <ul v-if="items.length" class="tab-list">
+              <li v-for="item in items">{{ item }}</li>
+            </ul>
+            <p v-else>Nessun oggetto tenuto.</p>
           </div>
+
         </div>
       </div>
 
       <!-- Sprite normali -->
-      <div id="sprite" class="hidden">
+      <div v-if="evolutionLine.length" id="sprite">
         <h2>Versione Normale</h2>
-        <div id="sprite-list" class="sprite-container"></div>
+        <div class="sprite-container">
+          <div v-for="p in evolutionLine" class="pokemon">
+            <p>#{{ String(p.id).padStart(3, '0') }}</p>
+            <img :src="`${SPRITE_BASE}/${p.id}.png`" :alt="p.nome" />
+            <p>{{ p.nome }}</p>
+          </div>
+        </div>
       </div>
 
       <!-- Sprite shiny -->
-      <div id="shiny" class="hidden">
+      <div v-if="evolutionLine.length" id="shiny">
         <h2>Versione Shiny ✨</h2>
-        <div id="shiny-list" class="sprite-container"></div>
-      </div>
-    </div>
-
-    <!-- Template: riga statistica -->
-    <template id="tpl-stat-row">
-      <div class="stat-row">
-        <span class="stat-name" data-field="name"></span>
-        <span class="stat-value" data-field="value"></span>
-        <div class="stat-bar">
-          <div class="stat-fill" data-style="width:percent"></div>
+        <div class="sprite-container">
+          <div v-for="p in evolutionLine" class="pokemon">
+            <p>#{{ String(p.id).padStart(3, '0') }} ✨</p>
+            <img :src="`${SPRITE_BASE}/shiny/${p.id}.png`" :alt="p.nome + ' shiny'" />
+            <p>{{ p.nome }} ✨</p>
+          </div>
         </div>
-        <span class="stat-star" data-field="star"></span>
       </div>
-    </template>
 
-    <!-- Template: abilità -->
-    <template id="tpl-ability">
-      <li>
-        <span data-field="name"></span>
-        <span class="hidden-tag" data-show-if="hidden">Nascosta</span>
-      </li>
-    </template>
-
-    <!-- Template: oggetto tenuto -->
-    <template id="tpl-item">
-      <li><span data-field="name"></span></li>
-    </template>
-
-    <!-- Template: card sprite -->
-    <template id="tpl-pokemon-card">
-      <div class="pokemon">
-        <p data-field="id"></p>
-        <img data-attr="src:src" data-attr2="alt:alt" />
-        <p data-field="name"></p>
-      </div>
-    </template>
-
-    <script src="js.js" type="text/javascript"></script>
+    </div>
+    <script src="js.js"></script>
   </body>
 </html>
