@@ -20,7 +20,7 @@ async function fetchJSON(url) {
 
 // ── App ───────────────────────────────────────────────────
 
-function Pokedex() {
+function Pokedex(typeTranslations, evolutionLines) {
   return {
     // stato
     query:         "",
@@ -31,11 +31,11 @@ function Pokedex() {
     items:         [],
     tipi:          "",
 
-    // dati locali
-    typeTranslations: {},
-    evolutionLines:   [],
-    abilityCache:     {},
-    itemCache:        {},
+    // dati pre-caricati
+    typeTranslations,
+    evolutionLines,
+    abilityCache: {},
+    itemCache:    {},
 
     // costanti esposte al template
     STAT_NAMES,
@@ -101,12 +101,11 @@ function Pokedex() {
         return;
       }
 
-      const found      = line.find(p => p.nome.toLowerCase() === query || String(p.id) === query);
-      this.pokemon     = await fetchJSON(`https://pokeapi.co/api/v2/pokemon/${found.id}`);
+      const found        = line.find(p => p.nome.toLowerCase() === query || String(p.id) === query);
+      this.pokemon       = await fetchJSON(`https://pokeapi.co/api/v2/pokemon/${found.id}`);
       this.evolutionLine = line;
-      this.tipi        = this.pokemon.types.map(t => this.typeTranslations[t.type.name]).join(", ");
+      this.tipi          = this.pokemon.types.map(t => this.typeTranslations[t.type.name]).join(", ");
 
-      // abilità e oggetti in parallelo
       const [abilities, items] = await Promise.all([
         Promise.all(
           this.pokemon.abilities.map(async a => ({
@@ -122,18 +121,16 @@ function Pokedex() {
       this.abilities = abilities;
       this.items     = items;
     },
-
-    // ── Init ────────────────────────────────────────────────
-
-    async init() {
-      [this.typeTranslations, this.evolutionLines] = await Promise.all([
-        fetchJSON("tipi_ita.json"),
-        fetchJSON("evolines.json"),
-      ]);
-    },
   };
 }
 
-// ── Mount ─────────────────────────────────────────────────
+// ── Mount (JSON caricati prima del mount) ──────────────────
 
-PetiteVue.createApp({ Pokedex }).mount();
+Promise.all([
+  fetchJSON("tipi_ita.json"),
+  fetchJSON("evolines.json"),
+]).then(([typeTranslations, evolutionLines]) => {
+  PetiteVue.createApp({
+    Pokedex: () => Pokedex(typeTranslations, evolutionLines),
+  }).mount();
+});

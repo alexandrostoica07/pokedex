@@ -38,7 +38,6 @@ button:hover {
 #nome {
   margin-top: 20px;
   font-weight: bold;
-  font-size: 28px;
 }
 
 #sprite,
@@ -133,7 +132,6 @@ button:hover {
 }
 
 #tabs {
-  display: none;
   max-width: 500px;
   margin: 20px auto;
 }

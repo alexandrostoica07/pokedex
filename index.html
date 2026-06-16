@@ -5,11 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pokedex(151)</title>
     <link rel="stylesheet" href="css.css" />
-    <script src="https://unpkg.com/petite-vue@0.2.2/dist/petite-vue.iife.js" defer></script>
   </head>
   <body>
-    <div v-scope="Pokedex()" @vue:mounted="init">
-
+    <div v-scope="Pokedex()">
       <div>
         <h1>Pokedex Prima Generazione</h1>
       </div>
@@ -26,11 +24,15 @@
       </div>
 
       <!-- Info principale -->
-      <div v-if="pokemon" class="nome">{{ capitalize(pokemon.name) }}</div>
+      <div v-if="pokemon" class="nome">
+        <h1>{{ capitalize(pokemon.name) }}:</h1>
+      </div>
       <div v-if="errore" class="nome">{{ errore }}</div>
 
       <div v-if="pokemon">
-        <button @click="playCry" title="Ascolta il verso">🔊 Ascolta il verso</button>
+        <button @click="playCry" title="Ascolta il verso">
+          🔊 Ascolta il verso
+        </button>
       </div>
 
       <div v-if="pokemon" id="info">
@@ -52,14 +54,18 @@
         </div>
 
         <div id="tab-content">
-
           <!-- Statistiche -->
           <div class="panel" id="panel-stats">
             <div v-for="s in pokemon.stats" class="stat-row">
-              <span class="stat-name">{{ STAT_NAMES[s.stat.name] ?? s.stat.name }}</span>
+              <span class="stat-name"
+                >{{ STAT_NAMES[s.stat.name] ?? s.stat.name }}</span
+              >
               <span class="stat-value">{{ s.base_stat }}</span>
               <div class="stat-bar">
-                <div class="stat-fill" :style="{ width: statPercent(s.base_stat) }"></div>
+                <div
+                  class="stat-fill"
+                  :style="{ width: statPercent(s.base_stat) }"
+                ></div>
               </div>
               <span class="stat-star">{{ star }}</span>
             </div>
@@ -83,7 +89,6 @@
             </ul>
             <p v-else>Nessun oggetto tenuto.</p>
           </div>
-
         </div>
       </div>
 
@@ -105,13 +110,16 @@
         <div class="sprite-container">
           <div v-for="p in evolutionLine" class="pokemon">
             <p>#{{ String(p.id).padStart(3, '0') }} ✨</p>
-            <img :src="`${SPRITE_BASE}/shiny/${p.id}.png`" :alt="p.nome + ' shiny'" />
+            <img
+              :src="`${SPRITE_BASE}/shiny/${p.id}.png`"
+              :alt="p.nome + ' shiny'"
+            />
             <p>{{ p.nome }} ✨</p>
           </div>
         </div>
       </div>
-
     </div>
+    <script src="https://unpkg.com/petite-vue@0.2.2/dist/petite-vue.iife.js"></script>
     <script src="js.js"></script>
   </body>
 </html>
