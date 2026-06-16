@@ -1,114 +1,188 @@
-let typeTranslations = {};
-let pk = [];
-const abilityCache = {};
-const itemCache = {};
+// ── Costanti ──────────────────────────────────────────────
 
 const LEGGENDARI = new Set([144, 145, 146, 150]);
 const MISTERIOSI = new Set([151]);
+const SPRITE_BASE =
+  "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon";
+const STAT_NAMES = {
+  hp: "HP",
+  attack: "Attacco",
+  defense: "Difesa",
+  "special-attack": "Att. Speciale",
+  "special-defense": "Dif. Speciale",
+  speed: "Velocità",
+};
 
-// ── Binding engine ────────────────────────────────────────
-//
-// bind(root, data) — popola tutti gli elementi dentro `root`
-// che hanno attributi di binding:
-//
-//   data-field="key"          → el.textContent = data[key]
-//   data-style="prop:key"     → el.style[prop] = data[key]
-//   data-attr="attr:key"      → el.setAttribute(attr, data[key])
-//   data-attr2="attr:key"     → idem (secondo attributo sullo stesso elemento)
-//   data-show-if="key"        → rimuove .hidden se data[key] è truthy
+// ── Stato ─────────────────────────────────────────────────
 
-function bind(root, data) {
-  root.querySelectorAll("[data-field]").forEach((el) => {
-    el.textContent = data[el.dataset.field] ?? "";
-  });
-  root.querySelectorAll("[data-style]").forEach((el) => {
-    const [prop, key] = el.dataset.style.split(":");
-    el.style[prop] = data[key] ?? "";
-  });
-  ["attr", "attr2"].forEach((attrKey) => {
-    root.querySelectorAll(`[data-${attrKey}]`).forEach((el) => {
-      const [attr, key] = el.dataset[attrKey].split(":");
-      el.setAttribute(attr, data[key] ?? "");
-    });
-  });
-  root.querySelectorAll("[data-show-if]").forEach((el) => {
-    const key = el.dataset.showIf;
-    el.classList.toggle("hidden", !data[key]);
-  });
+let typeTranslations = {};
+let evolutionLines = [];
+const abilityCache = {};
+const itemCache = {};
+
+// ── API ───────────────────────────────────────────────────
+
+async function fetchJSON(url) {
+  return (await fetch(url)).json();
 }
 
-// ── Template engine ───────────────────────────────────────
-//
-// renderList(containerId, templateId, items) — per ogni item
-// clona il template, chiama bind(), e appende al container.
-
-function renderList(containerId, templateId, items) {
-  const container = document.getElementById(containerId);
-  const tpl = document.getElementById(templateId);
-  for (const item of items) {
-    const frag = tpl.content.cloneNode(true);
-    bind(frag, item);
-    container.appendChild(frag);
-  }
+async function fetchPokemonDetails(id) {
+  return fetchJSON(`https://pokeapi.co/api/v2/pokemon/${id}`);
 }
 
-// ── Visibility helpers ────────────────────────────────────
-
-function show(id) {
-  document.getElementById(id).classList.remove("hidden");
-}
-function hide(id) {
-  document.getElementById(id).classList.add("hidden");
+async function fetchAbilityName(name, url) {
+  if (abilityCache[name]) return abilityCache[name];
+  const data = await fetchJSON(url);
+  const it = data.names.find((n) => n.language.name === "it");
+  return (abilityCache[name] = it?.name ?? name);
 }
 
-// ── Data loading ──────────────────────────────────────────
-
-async function loadData() {
-  const [resTypes, resPokemon] = await Promise.all([
-    fetch("tipi_ita.json"),
-    fetch("evolines.json"),
-  ]);
-  typeTranslations = await resTypes.json();
-  pk = await resPokemon.json();
+async function fetchItemName(name, url) {
+  if (itemCache[name]) return itemCache[name];
+  const data = await fetchJSON(url);
+  const it = data.names.find((n) => n.language.name === "it");
+  return (itemCache[name] = it?.name ?? name);
 }
 
-// ── Search helpers ────────────────────────────────────────
+// ── Ricerca dati ──────────────────────────────────────────
 
-function findPokemon(query) {
-  return pk.find((line) =>
+function findEvolutionLine(query) {
+  return evolutionLines.find((line) =>
     line.some((p) => p.nome.toLowerCase() === query || String(p.id) === query),
   );
 }
 
-function findInLine(line, query) {
+function findPokemonInLine(line, query) {
   return line.find(
     (p) => p.nome.toLowerCase() === query || String(p.id) === query,
   );
 }
 
-async function fetchPokemonDetails(id) {
-  return (await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`)).json();
+// ── DOM helpers ───────────────────────────────────────────
+
+const el = (id) => document.getElementById(id);
+const show = (id) => el(id).classList.remove("hidden");
+const hide = (id) => el(id).classList.add("hidden");
+
+function clearElement(id) {
+  el(id).innerHTML = "";
 }
 
-async function getAbilityName(name, url) {
-  if (abilityCache[name]) return abilityCache[name];
-  const data = await (await fetch(url)).json();
-  const it = data.names.find((n) => n.language.name === "it");
-  abilityCache[name] = it?.name ?? name;
-  return abilityCache[name];
+function cloneTemplate(templateId) {
+  return el(templateId).content.cloneNode(true);
 }
 
-async function getItemName(name, url) {
-  if (itemCache[name]) return itemCache[name];
-  const data = await (await fetch(url)).json();
-  const it = data.names.find((n) => n.language.name === "it");
-  itemCache[name] = it?.name ?? name;
-  return itemCache[name];
+// ── Render sezioni ────────────────────────────────────────
+
+function renderName(name) {
+  el("nome").textContent = name.charAt(0).toUpperCase() + name.slice(1);
+  show("nome");
 }
 
-// ── UI: clear ─────────────────────────────────────────────
+function renderCry(data) {
+  const url =
+    data.cries?.latest ??
+    `https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/${data.id}.ogg`;
+  el("cry-btn").onclick = () => new Audio(url).play();
+  show("cry");
+}
 
-function clearUI() {
+function renderInfo(data) {
+  el("info").querySelector("[data-field=altezza]").textContent =
+    `${data.height / 10} m`;
+  el("info").querySelector("[data-field=peso]").textContent =
+    `${data.weight / 10} kg`;
+  el("info").querySelector("[data-field=tipo]").textContent = data.types
+    .map((t) => typeTranslations[t.type.name])
+    .join(", ");
+  show("info");
+}
+
+function renderStats(stats, id) {
+  const star = LEGGENDARI.has(id) ? "⭐" : MISTERIOSI.has(id) ? "🌟" : "";
+  const container = el("panel-stats");
+
+  for (const s of stats) {
+    const frag = cloneTemplate("tpl-stat-row");
+    const percent = `${Math.min((s.base_stat / 255) * 100, 100)}%`;
+
+    frag.querySelector("[data-field=name]").textContent =
+      STAT_NAMES[s.stat.name] ?? s.stat.name;
+    frag.querySelector("[data-field=value]").textContent = s.base_stat;
+    frag.querySelector("[data-field=star]").textContent = star;
+    frag.querySelector(".stat-fill").style.width = percent;
+
+    container.appendChild(frag);
+  }
+}
+
+async function renderAbilities(abilities) {
+  if (!abilities.length) {
+    show("abilities-empty");
+    return;
+  }
+
+  const list = el("abilities-list");
+  await Promise.all(
+    abilities.map(async (a) => {
+      const name = await fetchAbilityName(a.ability.name, a.ability.url);
+      const frag = cloneTemplate("tpl-ability");
+
+      frag.querySelector("[data-field=name]").textContent = name;
+      const tag = frag.querySelector(".hidden-tag");
+      tag.classList.toggle("hidden", !a.is_hidden);
+
+      list.appendChild(frag);
+    }),
+  );
+}
+
+async function renderHeldItems(items) {
+  if (!items.length) {
+    show("items-empty");
+    return;
+  }
+
+  const list = el("items-list");
+  await Promise.all(
+    items.map(async (i) => {
+      const name = await fetchItemName(i.item.name, i.item.url);
+      const frag = cloneTemplate("tpl-item");
+
+      frag.querySelector("[data-field=name]").textContent = name;
+      list.appendChild(frag);
+    }),
+  );
+}
+
+function renderSpriteCard(containerId, pokemon, shiny = false) {
+  const frag = cloneTemplate("tpl-pokemon-card");
+  const src = shiny
+    ? `${SPRITE_BASE}/shiny/${pokemon.id}.png`
+    : `${SPRITE_BASE}/${pokemon.id}.png`;
+
+  frag.querySelector("[data-field=id]").textContent =
+    `#${String(pokemon.id).padStart(3, "0")}${shiny ? " ✨" : ""}`;
+  frag.querySelector("img").src = src;
+  frag.querySelector("img").alt = pokemon.nome + (shiny ? " shiny" : "");
+  frag.querySelector("[data-field=name]").textContent =
+    pokemon.nome + (shiny ? " ✨" : "");
+
+  el(containerId).appendChild(frag);
+}
+
+function renderSprites(line) {
+  for (const p of line) {
+    renderSpriteCard("sprite-list", p, false);
+    renderSpriteCard("shiny-list", p, true);
+  }
+  show("sprite");
+  show("shiny");
+}
+
+// ── Reset UI ──────────────────────────────────────────────
+
+function resetUI() {
   ["nome", "cry", "info", "tabs", "sprite", "shiny"].forEach(hide);
   [
     "panel-stats",
@@ -116,159 +190,48 @@ function clearUI() {
     "items-list",
     "sprite-list",
     "shiny-list",
-  ].forEach((id) => {
-    document.getElementById(id).innerHTML = "";
-  });
+  ].forEach(clearElement);
   ["abilities-empty", "items-empty"].forEach(hide);
-  document.getElementById("tab-stats").checked = true;
-}
-
-// ── UI: info ──────────────────────────────────────────────
-
-function showInfo(data) {
-  bind(document.getElementById("nome"), {
-    nome: data.name.charAt(0).toUpperCase() + data.name.slice(1),
-  });
-  show("nome");
-
-  const cryUrl =
-    data.cries?.latest ??
-    `https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/${data.id}.ogg`;
-  document.getElementById("cry-btn").onclick = () => new Audio(cryUrl).play();
-  show("cry");
-
-  bind(document.getElementById("info"), {
-    altezza: `${data.height / 10} m`,
-    peso: `${data.weight / 10} kg`,
-    tipo: data.types.map((t) => typeTranslations[t.type.name]).join(", "),
-  });
-  show("info");
-}
-
-// ── UI: stats ─────────────────────────────────────────────
-
-function showStats(data, isLegendary, isMisterioso) {
-  const statNames = {
-    hp: "HP",
-    attack: "Attacco",
-    defense: "Difesa",
-    "special-attack": "Att. Speciale",
-    "special-defense": "Dif. Speciale",
-    speed: "Velocità",
-  };
-
-  const star = isLegendary ? "⭐" : isMisterioso ? "🌟" : "";
-
-  renderList(
-    "panel-stats",
-    "tpl-stat-row",
-    data.stats.map((s) => ({
-      name: statNames[s.stat.name] ?? s.stat.name,
-      value: String(s.base_stat),
-      percent: `${Math.min((s.base_stat / 255) * 100, 100)}%`,
-      star,
-    })),
-  );
-}
-
-// ── UI: abilities ─────────────────────────────────────────
-
-async function showAbilities(data) {
-  if (data.abilities.length === 0) {
-    show("abilities-empty");
-    return;
-  }
-
-  const items = await Promise.all(
-    data.abilities.map(async (a) => ({
-      name: await getAbilityName(a.ability.name, a.ability.url),
-      hidden: a.is_hidden,
-    })),
-  );
-  renderList("abilities-list", "tpl-ability", items);
-}
-
-// ── UI: held items ────────────────────────────────────────
-
-async function showHeldItems(data) {
-  if (data.held_items.length === 0) {
-    show("items-empty");
-    return;
-  }
-
-  const items = await Promise.all(
-    data.held_items.map(async (i) => ({
-      name: await getItemName(i.item.name, i.item.url),
-    })),
-  );
-  renderList("items-list", "tpl-item", items);
-}
-
-// ── UI: sprites ───────────────────────────────────────────
-
-function showSprites(line) {
-  const baseUrl =
-    "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon";
-
-  renderList(
-    "sprite-list",
-    "tpl-pokemon-card",
-    line.map((p) => ({
-      id: `#${String(p.id).padStart(3, "0")}`,
-      src: `${baseUrl}/${p.id}.png`,
-      alt: p.nome,
-      name: p.nome,
-    })),
-  );
-
-  renderList(
-    "shiny-list",
-    "tpl-pokemon-card",
-    line.map((p) => ({
-      id: `#${String(p.id).padStart(3, "0")} ✨`,
-      src: `${baseUrl}/shiny/${p.id}.png`,
-      alt: `${p.nome} shiny`,
-      name: `${p.nome} ✨`,
-    })),
-  );
-
-  show("sprite");
-  show("shiny");
+  el("tab-stats").checked = true;
 }
 
 // ── Search ────────────────────────────────────────────────
 
 async function search(event) {
   event.preventDefault();
-  clearUI();
+  resetUI();
 
-  const query = document.getElementById("pokemon").value.toLowerCase().trim();
-  const foundLine = findPokemon(query);
+  const query = el("pokemon").value.toLowerCase().trim();
+  const line = findEvolutionLine(query);
 
-  if (!foundLine) {
-    bind(document.getElementById("nome"), {
-      nome: "Pokémon non trovato. Prova con un altro nome o id.",
-    });
+  if (!line) {
+    el("nome").textContent =
+      "Pokémon non trovato. Prova con un altro nome o id.";
     show("nome");
     return;
   }
 
-  const foundPokemon = findInLine(foundLine, query);
-  const data = await fetchPokemonDetails(foundPokemon.id);
+  const pokemon = findPokemonInLine(line, query);
+  const data = await fetchPokemonDetails(pokemon.id);
 
-  showInfo(data);
-  showStats(
-    data,
-    LEGGENDARI.has(foundPokemon.id),
-    MISTERIOSI.has(foundPokemon.id),
-  );
-  await showAbilities(data);
-  await showHeldItems(data);
+  renderName(data.name);
+  renderCry(data);
+  renderInfo(data);
+  renderStats(data.stats, pokemon.id);
+  await renderAbilities(data.abilities);
+  await renderHeldItems(data.held_items);
   show("tabs");
-  showSprites(foundLine);
+  renderSprites(line);
 }
 
 // ── Init ──────────────────────────────────────────────────
 
-loadData();
-document.getElementById("form").addEventListener("submit", search);
+async function init() {
+  [typeTranslations, evolutionLines] = await Promise.all([
+    fetchJSON("tipi_ita.json"),
+    fetchJSON("evolines.json"),
+  ]);
+  el("form").addEventListener("submit", search);
+}
+
+init();
