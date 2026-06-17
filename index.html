@@ -3,121 +3,184 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Pokedex(151)</title>
+    <title>Pokédex – Prima Generazione</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css.css" />
   </head>
   <body>
     <div v-scope="Pokedex()">
-      <div>
-        <h1>Pokedex Prima Generazione</h1>
-      </div>
 
-      <div>
-        <form @submit.prevent="search">
-          <input
-            type="text"
-            v-model="query"
-            placeholder="Inserisci nome o ID di un pokemon 1-151"
-          />
-          <button type="submit">Cerca</button>
+      <!-- Header -->
+      <header class="site-header">
+        <div class="header-inner">
+          <div class="logo">
+            <span class="logo-dot red"></span>
+            <span class="logo-dot yellow"></span>
+            <span class="logo-dot green"></span>
+            <h1 class="logo-title">POKÉDEX</h1>
+          </div>
+          <p class="logo-sub">Prima Generazione · Kanto · #001–151</p>
+        </div>
+      </header>
+
+      <!-- Search -->
+      <section class="search-section">
+        <form @submit.prevent="search" class="search-form">
+          <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input
+              type="text"
+              v-model="query"
+              placeholder="Nome o numero (#001–151)…"
+              class="search-input"
+              autocomplete="off"
+            />
+            <button type="submit" class="search-btn">Cerca</button>
+          </div>
         </form>
+      </section>
+
+      <!-- Error -->
+      <div v-if="errore" class="error-banner">
+        <span>⚠️</span> {{ errore }}
       </div>
 
-      <!-- Info principale -->
-      <div v-if="pokemon" class="nome">
-        <h1>{{ capitalize(pokemon.name) }}:</h1>
-      </div>
-      <div v-if="errore" class="nome">{{ errore }}</div>
+      <!-- Pokemon Card -->
+      <main v-if="pokemon" class="poke-card">
 
-      <div v-if="pokemon">
-        <button @click="playCry" title="Ascolta il verso">
-          🔊 Ascolta il verso
-        </button>
-      </div>
-
-      <div v-if="pokemon" id="info">
-        <p>Altezza: <span>{{ pokemon.height / 10 }} m</span></p>
-        <p>Peso: <span>{{ pokemon.weight / 10 }} kg</span></p>
-        <p>Tipo: <span>{{ tipi }}</span></p>
-      </div>
-
-      <!-- Tab -->
-      <div v-if="pokemon" id="tabs">
-        <input type="radio" name="tab" id="tab-stats" checked />
-        <input type="radio" name="tab" id="tab-abilities" />
-        <input type="radio" name="tab" id="tab-items" />
-
-        <div id="tab-bar">
-          <label for="tab-stats">Statistiche Base</label>
-          <label for="tab-abilities">Abilità</label>
-          <label for="tab-items">Oggetti Tenuti</label>
+        <!-- Card header -->
+        <div class="card-header" :class="'type-bg-' + primaryType">
+          <div class="card-meta">
+            <span class="poke-number">#{{ String(pokemon.id).padStart(3, '0') }}</span>
+          </div>
+          <h2 class="poke-name">{{ capitalize(pokemon.name) }}</h2>
+          <div class="type-badges">
+            <span
+              v-for="t in pokemon.types"
+              class="type-badge"
+              :class="'type-' + t.type.name"
+            >{{ typeTranslations[t.type.name] }}</span>
+          </div>
+          <button @click="playCry" class="cry-btn" title="Ascolta il verso">
+            🔊 <span>Verso</span>
+          </button>
         </div>
 
-        <div id="tab-content">
-          <!-- Statistiche -->
-          <div class="panel" id="panel-stats">
-            <div v-for="s in pokemon.stats" class="stat-row">
-              <span class="stat-name"
-                >{{ STAT_NAMES[s.stat.name] ?? s.stat.name }}</span
-              >
-              <span class="stat-value">{{ s.base_stat }}</span>
-              <div class="stat-bar">
-                <div
-                  class="stat-fill"
-                  :style="{ width: statPercent(s.base_stat) }"
-                ></div>
+        <!-- Sprite principale -->
+        <div class="card-sprite">
+          <img
+            :src="`${SPRITE_BASE}/${pokemon.id}.png`"
+            :alt="pokemon.name"
+            class="main-sprite"
+          />
+        </div>
+
+        <!-- Stats rapide -->
+        <div class="quick-stats">
+          <div class="quick-stat">
+            <span class="qs-value">{{ pokemon.height / 10 }} m</span>
+            <span class="qs-label">Altezza</span>
+          </div>
+          <div class="qs-divider"></div>
+          <div class="quick-stat">
+            <span class="qs-value">{{ pokemon.weight / 10 }} kg</span>
+            <span class="qs-label">Peso</span>
+          </div>
+          <div class="qs-divider"></div>
+          <div class="quick-stat">
+            <span class="qs-value">{{ pokemon.base_experience ?? '—' }}</span>
+            <span class="qs-label">Esp. Base</span>
+          </div>
+        </div>
+
+        <!-- Tab -->
+        <div id="tabs">
+          <input type="radio" name="tab" id="tab-stats" checked />
+          <input type="radio" name="tab" id="tab-abilities" />
+          <input type="radio" name="tab" id="tab-items" />
+
+          <div id="tab-bar">
+            <label for="tab-stats">📊 Statistiche</label>
+            <label for="tab-abilities">✨ Abilità</label>
+            <label for="tab-items">🎒 Oggetti</label>
+          </div>
+
+          <div id="tab-content">
+            <!-- Statistiche -->
+            <div class="panel" id="panel-stats">
+              <div v-for="(s, i) in pokemon.stats" class="stat-row">
+                <span class="stat-name">{{ STAT_NAMES[s.stat.name] ?? s.stat.name }}</span>
+                <span class="stat-value">{{ s.base_stat }}</span>
+                <div class="stat-bar">
+                  <div
+                    class="stat-fill"
+                    :class="statClass(s.base_stat)"
+                    :style="{ width: statPercent(s.base_stat) }"
+                  ></div>
+                </div>
+                <span class="stat-star">{{ star }}</span>
               </div>
-              <span class="stat-star">{{ star }}</span>
+            </div>
+
+            <!-- Abilità -->
+            <div class="panel" id="panel-abilities">
+              <ul v-if="abilities.length" class="tab-list">
+                <li v-for="a in abilities" class="ability-item">
+                  <span class="ability-name">{{ a.name }}</span>
+                  <span v-if="a.hidden" class="hidden-tag">Nascosta</span>
+                </li>
+              </ul>
+              <p v-else class="empty-msg">Nessuna abilità.</p>
+            </div>
+
+            <!-- Oggetti -->
+            <div class="panel" id="panel-items">
+              <ul v-if="items.length" class="tab-list">
+                <li v-for="item in items" class="item-row">🎒 {{ item }}</li>
+              </ul>
+              <p v-else class="empty-msg">Nessun oggetto tenuto.</p>
             </div>
           </div>
+        </div>
 
-          <!-- Abilità -->
-          <div class="panel" id="panel-abilities">
-            <ul v-if="abilities.length" class="tab-list">
-              <li v-for="a in abilities">
-                <span>{{ a.name }}</span>
-                <span v-if="a.hidden" class="hidden-tag">Nascosta</span>
-              </li>
-            </ul>
-            <p v-else>Nessuna abilità.</p>
-          </div>
+      </main>
 
-          <!-- Oggetti tenuti -->
-          <div class="panel" id="panel-items">
-            <ul v-if="items.length" class="tab-list">
-              <li v-for="item in items">{{ item }}</li>
-            </ul>
-            <p v-else>Nessun oggetto tenuto.</p>
+      <!-- Evolution Line -->
+      <section v-if="evolutionLine.length" class="evo-section">
+        <h3 class="section-title">Linea Evolutiva</h3>
+
+        <div class="evo-grid">
+          <div v-for="(p, i) in evolutionLine" class="evo-item" :class="{ 'evo-current': p.id === pokemon?.id }">
+            <div v-if="i > 0" class="evo-arrow">→</div>
+            <div class="evo-card">
+              <span class="evo-num">#{{ String(p.id).padStart(3, '0') }}</span>
+              <img :src="`${SPRITE_BASE}/${p.id}.png`" :alt="p.nome" class="evo-sprite" />
+              <span class="evo-name">{{ p.nome }}</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Sprite normali -->
-      <div v-if="evolutionLine.length" id="sprite">
-        <h2>Versione Normale</h2>
-        <div class="sprite-container">
-          <div v-for="p in evolutionLine" class="pokemon">
-            <p>#{{ String(p.id).padStart(3, '0') }}</p>
-            <img :src="`${SPRITE_BASE}/${p.id}.png`" :alt="p.nome" />
-            <p>{{ p.nome }}</p>
+        <!-- Shiny -->
+        <h3 class="section-title shiny-title">✨ Versione Shiny</h3>
+        <div class="evo-grid">
+          <div v-for="(p, i) in evolutionLine" class="evo-item" :class="{ 'evo-current': p.id === pokemon?.id }">
+            <div v-if="i > 0" class="evo-arrow">→</div>
+            <div class="evo-card shiny-card">
+              <span class="evo-num">#{{ String(p.id).padStart(3, '0') }} ✨</span>
+              <img :src="`${SPRITE_BASE}/shiny/${p.id}.png`" :alt="p.nome + ' shiny'" class="evo-sprite" />
+              <span class="evo-name">{{ p.nome }}</span>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Sprite shiny -->
-      <div v-if="evolutionLine.length" id="shiny">
-        <h2>Versione Shiny ✨</h2>
-        <div class="sprite-container">
-          <div v-for="p in evolutionLine" class="pokemon">
-            <p>#{{ String(p.id).padStart(3, '0') }} ✨</p>
-            <img
-              :src="`${SPRITE_BASE}/shiny/${p.id}.png`"
-              :alt="p.nome + ' shiny'"
-            />
-            <p>{{ p.nome }} ✨</p>
-          </div>
-        </div>
-      </div>
+      <!-- Footer -->
+      <footer class="site-footer">
+        <p>Dati via <a href="https://pokeapi.co" target="_blank">PokéAPI</a> · Immagini © Nintendo / Game Freak</p>
+      </footer>
+
     </div>
     <script src="https://unpkg.com/petite-vue@0.2.2/dist/petite-vue.iife.js"></script>
     <script src="js.js"></script>

@@ -1,5 +1,4 @@
 // ── Costanti ──────────────────────────────────────────────
-
 const LEGGENDARI  = new Set([144, 145, 146, 150]);
 const MISTERIOSI  = new Set([151]);
 const SPRITE_BASE = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon";
@@ -13,16 +12,13 @@ const STAT_NAMES  = {
 };
 
 // ── API ───────────────────────────────────────────────────
-
 async function fetchJSON(url) {
   return (await fetch(url)).json();
 }
 
 // ── App ───────────────────────────────────────────────────
-
 function Pokedex(typeTranslations, evolutionLines) {
   return {
-    // stato
     query:         "",
     pokemon:       null,
     evolutionLine: [],
@@ -30,18 +26,16 @@ function Pokedex(typeTranslations, evolutionLines) {
     abilities:     [],
     items:         [],
     tipi:          "",
+    primaryType:   "normal",
 
-    // dati pre-caricati
     typeTranslations,
     evolutionLines,
     abilityCache: {},
     itemCache:    {},
 
-    // costanti esposte al template
     STAT_NAMES,
     SPRITE_BASE,
 
-    // computed-like
     get star() {
       if (!this.pokemon) return "";
       if (LEGGENDARI.has(this.pokemon.id)) return "⭐";
@@ -49,13 +43,18 @@ function Pokedex(typeTranslations, evolutionLines) {
       return "";
     },
 
-    // helpers
     capitalize(s) {
       return s.charAt(0).toUpperCase() + s.slice(1);
     },
 
     statPercent(value) {
       return `${Math.min((value / 255) * 100, 100)}%`;
+    },
+
+    statClass(value) {
+      if (value < 60)  return "low";
+      if (value < 100) return "mid";
+      return "high";
     },
 
     playCry() {
@@ -84,8 +83,6 @@ function Pokedex(typeTranslations, evolutionLines) {
       return (this.itemCache[name] = it?.name ?? name);
     },
 
-    // ── Search ──────────────────────────────────────────────
-
     async search() {
       this.pokemon       = null;
       this.evolutionLine = [];
@@ -97,13 +94,14 @@ function Pokedex(typeTranslations, evolutionLines) {
       const line  = this.findEvolutionLine(query);
 
       if (!line) {
-        this.errore = "Pokémon non trovato. Prova con un altro nome o id.";
+        this.errore = "Pokémon non trovato. Prova con un altro nome o ID (1–151).";
         return;
       }
 
       const found        = line.find(p => p.nome.toLowerCase() === query || String(p.id) === query);
       this.pokemon       = await fetchJSON(`https://pokeapi.co/api/v2/pokemon/${found.id}`);
       this.evolutionLine = line;
+      this.primaryType   = this.pokemon.types[0].type.name;
       this.tipi          = this.pokemon.types.map(t => this.typeTranslations[t.type.name]).join(", ");
 
       const [abilities, items] = await Promise.all([
@@ -124,8 +122,7 @@ function Pokedex(typeTranslations, evolutionLines) {
   };
 }
 
-// ── Mount (JSON caricati prima del mount) ──────────────────
-
+// ── Mount ─────────────────────────────────────────────────
 Promise.all([
   fetchJSON("tipi_ita.json"),
   fetchJSON("evolines.json"),
