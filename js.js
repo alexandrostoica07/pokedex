@@ -1,274 +1,145 @@
-let typeTranslations = {};
-let pk = [];
-const abilityCache = {};
-const itemCache = {};
-
+// ── Costanti ──────────────────────────────────────────────
 const LEGGENDARI = new Set([144, 145, 146, 150]);
 const MISTERIOSI = new Set([151]);
+const SPRITE_BASE =
+  "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon";
+const STAT_NAMES = {
+  hp: "HP",
+  attack: "Attacco",
+  defense: "Difesa",
+  "special-attack": "Att. Speciale",
+  "special-defense": "Dif. Speciale",
+  speed: "Velocità",
+};
 
-// ── Binding engine ────────────────────────────────────────
-//
-// bind(root, data) — popola tutti gli elementi dentro `root`
-// che hanno attributi di binding:
-//
-//   data-field="key"          → el.textContent = data[key]
-//   data-style="prop:key"     → el.style[prop] = data[key]
-//   data-attr="attr:key"      → el.setAttribute(attr, data[key])
-//   data-attr2="attr:key"     → idem (secondo attributo sullo stesso elemento)
-//   data-show-if="key"        → rimuove .hidden se data[key] è truthy
-
-function bind(root, data) {
-  root.querySelectorAll("[data-field]").forEach((el) => {
-    el.textContent = data[el.dataset.field] ?? "";
-  });
-  root.querySelectorAll("[data-style]").forEach((el) => {
-    const [prop, key] = el.dataset.style.split(":");
-    el.style[prop] = data[key] ?? "";
-  });
-  ["attr", "attr2"].forEach((attrKey) => {
-    root.querySelectorAll(`[data-${attrKey}]`).forEach((el) => {
-      const [attr, key] = el.dataset[attrKey].split(":");
-      el.setAttribute(attr, data[key] ?? "");
-    });
-  });
-  root.querySelectorAll("[data-show-if]").forEach((el) => {
-    const key = el.dataset.showIf;
-    el.classList.toggle("hidden", !data[key]);
-  });
+// ── API ───────────────────────────────────────────────────
+async function fetchJSON(url) {
+  return (await fetch(url)).json();
 }
 
-// ── Template engine ───────────────────────────────────────
-//
-// renderList(containerId, templateId, items) — per ogni item
-// clona il template, chiama bind(), e appende al container.
+// ── App ───────────────────────────────────────────────────
+function Pokedex(typeTranslations, evolutionLines) {
+  return {
+    query: "",
+    pokemon: null,
+    evolutionLine: [],
+    errore: "",
+    abilities: [],
+    items: [],
+    tipi: "",
+    primaryType: "normal",
 
-function renderList(containerId, templateId, items) {
-  const container = document.getElementById(containerId);
-  const tpl = document.getElementById(templateId);
-  for (const item of items) {
-    const frag = tpl.content.cloneNode(true);
-    bind(frag, item);
-    container.appendChild(frag);
-  }
-}
+    typeTranslations,
+    evolutionLines,
+    abilityCache: {},
+    itemCache: {},
 
-// ── Visibility helpers ────────────────────────────────────
+    STAT_NAMES,
+    SPRITE_BASE,
 
-function show(id) {
-  document.getElementById(id).classList.remove("hidden");
-}
-function hide(id) {
-  document.getElementById(id).classList.add("hidden");
-}
+    get star() {
+      if (!this.pokemon) return "";
+      if (LEGGENDARI.has(this.pokemon.id)) return "⭐";
+      if (MISTERIOSI.has(this.pokemon.id)) return "🌟";
+      return "";
+    },
 
-// ── Data loading ──────────────────────────────────────────
+    capitalize(s) {
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    },
 
-async function loadData() {
-  const [resTypes, resPokemon] = await Promise.all([
-    fetch("tipi_ita.json"),
-    fetch("evolines.json"),
-  ]);
-  typeTranslations = await resTypes.json();
-  pk = await resPokemon.json();
-}
+    statPercent(value) {
+      return `${Math.min((value / 255) * 100, 100)}%`;
+    },
 
-// ── Search helpers ────────────────────────────────────────
+    statClass(value) {
+      if (value < 60) return "low";
+      if (value < 100) return "mid";
+      return "high";
+    },
 
-function findPokemon(query) {
-  return pk.find((line) =>
-    line.some((p) => p.nome.toLowerCase() === query || String(p.id) === query),
-  );
-}
+    playCry() {
+      const url =
+        this.pokemon.cries?.latest ??
+        `https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/${this.pokemon.id}.ogg`;
+      new Audio(url).play();
+    },
 
-function findInLine(line, query) {
-  return line.find(
-    (p) => p.nome.toLowerCase() === query || String(p.id) === query,
-  );
-}
+    findEvolutionLine(query) {
+      return this.evolutionLines.find((line) =>
+        line.some(
+          (p) => p.nome.toLowerCase() === query || String(p.id) === query,
+        ),
+      );
+    },
 
-async function fetchPokemonDetails(id) {
-  return (await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`)).json();
-}
+    async fetchAbilityName(name, url) {
+      if (this.abilityCache[name]) return this.abilityCache[name];
+      const data = await fetchJSON(url);
+      const it = data.names.find((n) => n.language.name === "it");
+      return (this.abilityCache[name] = it?.name ?? name);
+    },
 
-async function getAbilityName(name, url) {
-  if (abilityCache[name]) return abilityCache[name];
-  const data = await (await fetch(url)).json();
-  const it = data.names.find((n) => n.language.name === "it");
-  abilityCache[name] = it?.name ?? name;
-  return abilityCache[name];
-}
+    async fetchItemName(name, url) {
+      if (this.itemCache[name]) return this.itemCache[name];
+      const data = await fetchJSON(url);
+      const it = data.names.find((n) => n.language.name === "it");
+      return (this.itemCache[name] = it?.name ?? name);
+    },
 
-async function getItemName(name, url) {
-  if (itemCache[name]) return itemCache[name];
-  const data = await (await fetch(url)).json();
-  const it = data.names.find((n) => n.language.name === "it");
-  itemCache[name] = it?.name ?? name;
-  return itemCache[name];
-}
+    async search() {
+      this.pokemon = null;
+      this.evolutionLine = [];
+      this.abilities = [];
+      this.items = [];
+      this.errore = "";
 
-// ── UI: clear ─────────────────────────────────────────────
+      const query = this.query.toLowerCase().trim();
+      const line = this.findEvolutionLine(query);
 
-function clearUI() {
-  ["nome", "cry", "info", "tabs", "sprite", "shiny"].forEach(hide);
-  [
-    "panel-stats",
-    "abilities-list",
-    "items-list",
-    "sprite-list",
-    "shiny-list",
-  ].forEach((id) => {
-    document.getElementById(id).innerHTML = "";
-  });
-  ["abilities-empty", "items-empty"].forEach(hide);
-  document.getElementById("tab-stats").checked = true;
-}
+      if (!line) {
+        this.errore =
+          "Pokémon non trovato. Prova con un altro nome o ID (1–151).";
+        return;
+      }
 
-// ── UI: info ──────────────────────────────────────────────
+      const found = line.find(
+        (p) => p.nome.toLowerCase() === query || String(p.id) === query,
+      );
+      this.pokemon = await fetchJSON(
+        `https://pokeapi.co/api/v2/pokemon/${found.id}`,
+      );
+      this.evolutionLine = line;
+      this.primaryType = this.pokemon.types[0].type.name;
+      this.tipi = this.pokemon.types
+        .map((t) => this.typeTranslations[t.type.name])
+        .join(", ");
 
-function showInfo(data) {
-  bind(document.getElementById("nome"), {
-    nome: data.name.charAt(0).toUpperCase() + data.name.slice(1),
-  });
-  show("nome");
+      const [abilities, items] = await Promise.all([
+        Promise.all(
+          this.pokemon.abilities.map(async (a) => ({
+            name: await this.fetchAbilityName(a.ability.name, a.ability.url),
+            hidden: a.is_hidden,
+          })),
+        ),
+        Promise.all(
+          this.pokemon.held_items.map((i) =>
+            this.fetchItemName(i.item.name, i.item.url),
+          ),
+        ),
+      ]);
 
-  const cryUrl =
-    data.cries?.latest ??
-    `https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/${data.id}.ogg`;
-  document.getElementById("cry-btn").onclick = () => new Audio(cryUrl).play();
-  show("cry");
-
-  bind(document.getElementById("info"), {
-    altezza: `${data.height / 10} m`,
-    peso: `${data.weight / 10} kg`,
-    tipo: data.types.map((t) => typeTranslations[t.type.name]).join(", "),
-  });
-  show("info");
-}
-
-// ── UI: stats ─────────────────────────────────────────────
-
-function showStats(data, isLegendary, isMisterioso) {
-  const statNames = {
-    hp: "HP",
-    attack: "Attacco",
-    defense: "Difesa",
-    "special-attack": "Att. Speciale",
-    "special-defense": "Dif. Speciale",
-    speed: "Velocità",
+      this.abilities = abilities;
+      this.items = items;
+    },
   };
-
-  const star = isLegendary ? "⭐" : isMisterioso ? "🌟" : "";
-
-  renderList(
-    "panel-stats",
-    "tpl-stat-row",
-    data.stats.map((s) => ({
-      name: statNames[s.stat.name] ?? s.stat.name,
-      value: String(s.base_stat),
-      percent: `${Math.min((s.base_stat / 255) * 100, 100)}%`,
-      star,
-    })),
-  );
 }
 
-// ── UI: abilities ─────────────────────────────────────────
-
-async function showAbilities(data) {
-  if (data.abilities.length === 0) {
-    show("abilities-empty");
-    return;
-  }
-
-  const items = await Promise.all(
-    data.abilities.map(async (a) => ({
-      name: await getAbilityName(a.ability.name, a.ability.url),
-      hidden: a.is_hidden,
-    })),
-  );
-  renderList("abilities-list", "tpl-ability", items);
-}
-
-// ── UI: held items ────────────────────────────────────────
-
-async function showHeldItems(data) {
-  if (data.held_items.length === 0) {
-    show("items-empty");
-    return;
-  }
-
-  const items = await Promise.all(
-    data.held_items.map(async (i) => ({
-      name: await getItemName(i.item.name, i.item.url),
-    })),
-  );
-  renderList("items-list", "tpl-item", items);
-}
-
-// ── UI: sprites ───────────────────────────────────────────
-
-function showSprites(line) {
-  const baseUrl =
-    "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon";
-
-  renderList(
-    "sprite-list",
-    "tpl-pokemon-card",
-    line.map((p) => ({
-      id: `#${String(p.id).padStart(3, "0")}`,
-      src: `${baseUrl}/${p.id}.png`,
-      alt: p.nome,
-      name: p.nome,
-    })),
-  );
-
-  renderList(
-    "shiny-list",
-    "tpl-pokemon-card",
-    line.map((p) => ({
-      id: `#${String(p.id).padStart(3, "0")} ✨`,
-      src: `${baseUrl}/shiny/${p.id}.png`,
-      alt: `${p.nome} shiny`,
-      name: `${p.nome} ✨`,
-    })),
-  );
-
-  show("sprite");
-  show("shiny");
-}
-
-// ── Search ────────────────────────────────────────────────
-
-async function search(event) {
-  event.preventDefault();
-  clearUI();
-
-  const query = document.getElementById("pokemon").value.toLowerCase().trim();
-  const foundLine = findPokemon(query);
-
-  if (!foundLine) {
-    bind(document.getElementById("nome"), {
-      nome: "Pokémon non trovato. Prova con un altro nome o id.",
-    });
-    show("nome");
-    return;
-  }
-
-  const foundPokemon = findInLine(foundLine, query);
-  const data = await fetchPokemonDetails(foundPokemon.id);
-
-  showInfo(data);
-  showStats(
-    data,
-    LEGGENDARI.has(foundPokemon.id),
-    MISTERIOSI.has(foundPokemon.id),
-  );
-  await showAbilities(data);
-  await showHeldItems(data);
-  show("tabs");
-  showSprites(foundLine);
-}
-
-// ── Init ──────────────────────────────────────────────────
-
-loadData();
-document.getElementById("form").addEventListener("submit", search);
+// ── Mount ─────────────────────────────────────────────────
+Promise.all([fetchJSON("tipi_ita.json"), fetchJSON("evolines.json")]).then(
+  ([typeTranslations, evolutionLines]) => {
+    PetiteVue.createApp({
+      Pokedex: () => Pokedex(typeTranslations, evolutionLines),
+    }).mount();
+  },
+);
