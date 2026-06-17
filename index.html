@@ -4,14 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pokédex – Prima Generazione</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="css.css" />
   </head>
   <body>
     <div v-scope="Pokedex()">
-
       <!-- Header -->
       <header class="site-header">
         <div class="header-inner">
@@ -43,17 +45,16 @@
       </section>
 
       <!-- Error -->
-      <div v-if="errore" class="error-banner">
-        <span>⚠️</span> {{ errore }}
-      </div>
+      <div v-if="errore" class="error-banner"><span>⚠️</span> {{ errore }}</div>
 
       <!-- Pokemon Card -->
       <main v-if="pokemon" class="poke-card">
-
         <!-- Card header -->
         <div class="card-header" :class="'type-bg-' + primaryType">
           <div class="card-meta">
-            <span class="poke-number">#{{ String(pokemon.id).padStart(3, '0') }}</span>
+            <span class="poke-number"
+              >#{{ String(pokemon.id).padStart(3, '0') }}</span
+            >
           </div>
           <h2 class="poke-name">{{ capitalize(pokemon.name) }}</h2>
           <div class="type-badges">
@@ -61,7 +62,8 @@
               v-for="t in pokemon.types"
               class="type-badge"
               :class="'type-' + t.type.name"
-            >{{ typeTranslations[t.type.name] }}</span>
+              >{{ typeTranslations[t.type.name] }}</span
+            >
           </div>
           <button @click="playCry" class="cry-btn" title="Ascolta il verso">
             🔊 <span>Verso</span>
@@ -111,7 +113,9 @@
             <!-- Statistiche -->
             <div class="panel" id="panel-stats">
               <div v-for="(s, i) in pokemon.stats" class="stat-row">
-                <span class="stat-name">{{ STAT_NAMES[s.stat.name] ?? s.stat.name }}</span>
+                <span class="stat-name"
+                  >{{ STAT_NAMES[s.stat.name] ?? s.stat.name }}</span
+                >
                 <span class="stat-value">{{ s.base_stat }}</span>
                 <div class="stat-bar">
                   <div
@@ -144,7 +148,6 @@
             </div>
           </div>
         </div>
-
       </main>
 
       <!-- Evolution Line -->
@@ -152,11 +155,19 @@
         <h3 class="section-title">Linea Evolutiva</h3>
 
         <div class="evo-grid">
-          <div v-for="(p, i) in evolutionLine" class="evo-item" :class="{ 'evo-current': p.id === pokemon?.id }">
+          <div
+            v-for="(p, i) in evolutionLine"
+            class="evo-item"
+            :class="{ 'evo-current': p.id === pokemon?.id }"
+          >
             <div v-if="i > 0" class="evo-arrow">→</div>
             <div class="evo-card">
               <span class="evo-num">#{{ String(p.id).padStart(3, '0') }}</span>
-              <img :src="`${SPRITE_BASE}/${p.id}.png`" :alt="p.nome" class="evo-sprite" />
+              <img
+                :src="`${SPRITE_BASE}/${p.id}.png`"
+                :alt="p.nome"
+                class="evo-sprite"
+              />
               <span class="evo-name">{{ p.nome }}</span>
             </div>
           </div>
@@ -165,11 +176,21 @@
         <!-- Shiny -->
         <h3 class="section-title shiny-title">✨ Versione Shiny</h3>
         <div class="evo-grid">
-          <div v-for="(p, i) in evolutionLine" class="evo-item" :class="{ 'evo-current': p.id === pokemon?.id }">
+          <div
+            v-for="(p, i) in evolutionLine"
+            class="evo-item"
+            :class="{ 'evo-current': p.id === pokemon?.id }"
+          >
             <div v-if="i > 0" class="evo-arrow">→</div>
             <div class="evo-card shiny-card">
-              <span class="evo-num">#{{ String(p.id).padStart(3, '0') }} ✨</span>
-              <img :src="`${SPRITE_BASE}/shiny/${p.id}.png`" :alt="p.nome + ' shiny'" class="evo-sprite" />
+              <span class="evo-num"
+                >#{{ String(p.id).padStart(3, '0') }} ✨</span
+              >
+              <img
+                :src="`${SPRITE_BASE}/shiny/${p.id}.png`"
+                :alt="p.nome + ' shiny'"
+                class="evo-sprite"
+              />
               <span class="evo-name">{{ p.nome }}</span>
             </div>
           </div>
@@ -178,9 +199,11 @@
 
       <!-- Footer -->
       <footer class="site-footer">
-        <p>Dati via <a href="https://pokeapi.co" target="_blank">PokéAPI</a> · Immagini © Nintendo / Game Freak</p>
+        <p>
+          Dati via <a href="https://pokeapi.co" target="_blank">PokéAPI</a> ·
+          Immagini © Nintendo / Game Freak
+        </p>
       </footer>
-
     </div>
     <script src="https://unpkg.com/petite-vue@0.2.2/dist/petite-vue.iife.js"></script>
     <script src="js.js"></script>
